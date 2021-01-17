@@ -98,12 +98,13 @@ def _getText(imgname):
         st2 = st
     return st2
 
-def start(searchwords,odds,stake):
+def start(searchwords,odds,stake,username,password):
     # try:
-    url = f"http://localhost:8002/start?searchwords={searchwords}&odds={odds}&stake={stake}"
+    url = f"http://localhost?searchwords={searchwords}&odds={odds}&stake={stake}&username={username}&password={password}"
     response = requests.get(url)
-    response.raise_for_status()
-    return response.json()
+    # response.raise_for_status()
+    # print(response)
+    return response.text
     # except:        
     #     return False
     
@@ -174,66 +175,95 @@ class MainWindow(QMainWindow, FROM_RESET) :
             unzip(zip_name)
 
     def startProg(self) :   
-        curtime = get_curtime()     
-        self.logText.append(curtime + ":" + "Data processing is started!")
-        f = open("./data.txt", "r")
-        data = f.read()
-        data = data.split('\n')
-        username = data[0]
-        license_key = data[1]
-        stake = data[2]
+        curtime = get_curtime()  
+        try:               
+            self.logText.append(curtime + ":" + "Data processing is started!")
+            f = open("./data.txt", "r")
+            data = f.read()
+            data = data.split('\n')
+            username = data[0]
+            license_key = data[1]
+            stake = data[2]
+            clientname = data[7]
+            clientpwd = data[8]    
 
-        print(username)
-        print(license_key)
-        print(stake)
+            print(username)
+            print(license_key)
+            print(stake)
 
-        global is_auth
-        is_auth = False  
-        if username and license_key:
-            check_auth(username,license_key)
-        
-
-        if is_auth:
-            curtime = get_curtime()   
-            self.logText.append(curtime + ": " + "Login success!")
-            self.account.setText(username)
-            response = get_response_for_stake(stake)
-            results=json.dumps(response) 
-            results=json.loads(results)
-            data = results['data']
-            print(data)
-            time.sleep(1)
-            if data:
-                for item in data:                
-                    self.logText.append("Targetvalue:"+item['targetvalue'])
-                    self.logText.append("Odds:"+item['odds'])
-                    self.logText.append("Stake:"+item['stake'])
+            global is_auth
+            is_auth = False  
+            if username and license_key:
+                check_auth(username,license_key)
             
-                    # searchwords = results['targetvalue']
-                    # odds = results['odds']
-                    # stake = results['stake']
+
+            if is_auth:
+                try:
+                    curtime = get_curtime()   
+                    self.logText.append(curtime + ": " + "Login success!")
+                    self.account.setText(username)
+                    response = get_response_for_stake(stake)
+                    results=json.dumps(response) 
+                    results=json.loads(results)
+                    data = results['data']
+                    print(data)
                     time.sleep(1)
-                    # if searchwords:      
-                    #       
-                    # searchwords = 'foot'
-                    # odds = '1.98'
-                    # stake = '1'
-                    result = start(item['targetvalue'],item['odds'],item['stake'])
-                    self.logText.append("Bet Result:"+str(result['results']))
-                    print(result)
+                    if data:
+                        for item in data:                
+                            self.logText.append("Targetvalue:"+item['targetvalue'])
+                            self.logText.append("Odds:"+item['odds'])
+                            self.logText.append("Stake:"+item['stake'])
+                    
+                            # searchwords = results['targetvalue']
+                            # odds = results['odds']
+                            # stake = results['stake']
+                            time.sleep(1)
+                            # if searchwords:      
+                            #       
+                            # searchwords = 'foot'
+                            # odds = '1.98'
+                            # stake = '1'
+                            searchwords = item['targetvalue']
+                            searchwords = searchwords.replace(" ","%")
+                            result = start(searchwords,item['odds'],item['stake'],clientname,clientpwd)
+                            if "success" in result:  
+                                curtime = get_curtime()
+                                self.logText.append(curtime + ": " + "Bet process success!")
+                            elif "over" in result:                                
+                                self.logText.append(curtime + ": " + "Bet process faild.Odds is over!")
+                            else:
+                                curtime = get_curtime()
+                                self.logText.append(curtime + ": " + "Bet process false!")
+                            
+                    else:
+                        self.logText.append("--------"+"No result"+"--------")
+
+                    # searchwords = "Fermana v Legnago Salus"
+                    # searchwords = searchwords.replace(" ","%")
+                    # odds = "5.5"
+                    # stake = "0.1"
+                    # result = start(searchwords,odds,stake,clientname,clientpwd)
+                    # print("result")
+                    # print(result)
+                    # if "success" in result:
+                    #     print("ok")
+                    #     self.logText.append("Bet process success!")
+                    # elif "over" in result:
+                    #     self.logText.append("Bet process faild.Odds is over.")
+                    # else:
+                    #     self.logText.append("Bet process faild")
+                except:
+                    curtime = get_curtime()
+                    self.logText.append(curtime + ": " + "Something wrong. Please try again!")
+                    pass
+
             else:
-                self.logText.append("--------"+"No result"+"--------")
-
-            # searchwords = "foot"
-            # odds = "2.2"
-            # stake = "2.5"
-            # result = start(searchwords,odds,stake)
-            
-
-        else:
-            curtime = get_curtime()   
-            self.logText.append(curtime + ": " + "Login faild.Please confirm login info again!")
-
+                curtime = get_curtime()   
+                self.logText.append(curtime + ": " + "Login faild.Please confirm login info again!")
+        except:
+            curtime = get_curtime()
+            self.logText.append(curtime + ": " + "Something wrong. Please try again!")
+            pass
         
 
     def stopProg(self) :
